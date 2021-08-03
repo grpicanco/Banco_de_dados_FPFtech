@@ -1,0 +1,40 @@
+--05. Crie um campo para saber o total da venda, crie um script para atualizar os dados já existentes, em seguida uma trigger para preencher o campo de forma automática.
+
+alter table sale
+add column total_price numeric(16,2);
+
+/* Demorou 7m 10s para fazer o insert.*/
+update sale as a
+set total_price = (select sum(p.sale_price * si.quantity) as soma
+                    from  sale_item si
+                    inner join product p on p.id = si.id_product
+                    inner join sale s on s.id = si.id_sale
+                    where si.id_sale = a.id)
+where a.active = true;
+
+
+create or replace function fn_salve_sale() returns trigger as
+    $$
+    begin
+        raise notice 'new.id_product, new.id_sale, new.quantity, %, %, %', new.id_product, new.id_sale, new.quantity;
+            Update sale as a
+            set total_price = (select sum(p.sale_price * new.quantity)
+                                    from  sale_item si
+                                    inner join product p on p.id = new.id_product
+                                    inner join sale s on s.id = new.id_sale
+                                    where si.id_sale = new.id_sale
+                                    )
+            where a.id = new.id_sale;
+            return new;
+    end;
+    $$
+language plpgsql;
+
+create trigger tg_fn_add_total_price
+    after insert on sale_item
+    for each row
+    execute function fn_salve_sale();
+
+insert into sale(id, id_customer, id_branch, id_employee, date) values (99999, 90, 5, 2, now());
+insert into sale_item(id_sale, id_product, quantity) values (9999, 1 ,3);
+
