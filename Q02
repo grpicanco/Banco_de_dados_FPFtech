@@ -1,0 +1,27 @@
+-- 02. Crie uma PIVOT TABLE para saber o total vendido por grupo de produto por mês referente a um determinado ano.
+CREATE EXTENSION IF NOT EXISTS "tablefunc";
+
+select *
+from crosstab(
+             $$
+                select pg.name as product_group, to_char(s.date, 'Month') as month, concat('R$ ', to_char(sum(p.sale_price * si.quantity), '999999999D99')) as sale
+                from
+                    sale s
+                    inner join sale_item si on s.id = si.id_sale and extract(year from s.date) = 2019
+                    inner join product p on p.id = si.id_product
+                    inner join product_group pg on pg.id = p.id_product_group
+                    group by pg.name, to_char(s.date, 'Month')
+            $$,
+            $$
+                select
+                    to_char(
+                            to_date(a::text, 'MM'), 'Month'
+                        ) as month
+                from
+                    generate_series(1, 12) a
+            $$
+         ) as (
+               product_group varchar, "January" varchar, "February" varchar, "March" varchar, "April" varchar,
+               "May" varchar, "June" varchar, "July" varchar, "August" varchar, "September" varchar, "October" varchar,
+               "November" varchar, "December" varchar
+    );
