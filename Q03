@@ -1,0 +1,19 @@
+--03. Crie uma PIVOT TABLE para saber o total de clientes por bairro e zona.
+create extension if not exists "tablefunc";
+
+select *
+from crosstab(
+        $$
+        select d.name as distrito, z.name as zona,count(c.id)
+                from customer c
+            inner join district d on d.id = c.id_district
+            inner join zone z on z.id = d.id_zone
+            group by d.name, z.name
+        $$,
+        $$
+        select o.name
+            from zone o
+        $$) as (
+            Zona varchar, "Norte" numeric, "Sul" numeric, "Leste" numeric, "Oeste" numeric
+        )
+;
